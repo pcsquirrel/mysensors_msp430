@@ -40,6 +40,8 @@ Sensors:
 - MSP430G2452 code compiles, but doesn´t run proberly - stack corruption possibly
 - no Repeater Mode
 - no Gateway Mode
+- sleep() function should only be could for whole seconds (1000msec) otherwise controller is rebooting, maybe watchdog issue
+- energy saving shold work in sleep, but not verified yet
 - no EEPROM to save Settings leading to:
 - -no AutoID - Id must be set in Setup()
 - -fixed to metric
