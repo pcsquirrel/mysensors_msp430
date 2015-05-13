@@ -13,9 +13,9 @@ see Installation for Arduino
  
 
 # Wiring #
-|Name|Launchpad Pin|NRF Pin|
------------------------------
-|Gnd|20|1|
+| Name | Launchpad Pin | NRF Pin |
+|---|---|---|
+| Gnd | 20 | 1 |
 |Vcc (3.3V)|1|2|
 |CE|8|3|
 |CS|9|4|
