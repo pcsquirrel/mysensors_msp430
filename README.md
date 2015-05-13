@@ -11,6 +11,17 @@ see Installation for Arduino
 - Energia 14 and above
 - MSP430G2553 mikrocontroller
  
+# Example #
+
+mspnodeExample.ino is a sketch example for the Launchpad.
+
+Child ID: 1
+Sensors:
+- button state
+- internal temperatur sensor
+- supply voltage
+- running counter (0-255)
+
 
 # Wiring #
 | Name | Launchpad Pin | NRF Pin |
