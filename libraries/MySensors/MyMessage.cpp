@@ -2,6 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef ENERGIA
+#include <atof.h>
+#endif
+
 
 MyMessage::MyMessage() {
 	destination = 0; // Gateway is default destination

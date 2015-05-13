@@ -1,0 +1,7 @@
+no repeater
+no epprom 
+	fixed ID
+	fixed metric
+	
+	internal sleep
+	auto paretn

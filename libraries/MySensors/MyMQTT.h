@@ -9,6 +9,7 @@ modify it under the terms of the GNU General Public License
 version 2 as published by the Free Software Foundation.
 */
 
+#ifndef ENERGIA
 #ifndef MyMQTT_h
 #define MyMQTT_h
 
@@ -80,4 +81,5 @@ private:
 
 extern void ledTimersInterrupt();
 
+#endif
 #endif

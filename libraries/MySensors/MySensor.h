@@ -16,15 +16,19 @@
 #include "MyConfig.h"
 #include "MyMessage.h"
 #include <stddef.h>
-#include <avr/eeprom.h>
 #include <avr/pgmspace.h>
+#ifndef ENERGIA
+#include <avr/eeprom.h>
 #include <avr/wdt.h>
+#endif
 #include <stdarg.h>
 
 #ifdef __cplusplus
 #include <Arduino.h>
 #include <SPI.h>
+#ifndef ENERGIA
 #include "utility/LowPower.h"
+#endif
 #include "utility/RF24.h"
 #include "utility/RF24_config.h"
 #endif
@@ -35,7 +39,11 @@
 #define debug(x,...)
 #endif
 
+#ifdef ENERGIA
+#define BAUD_RATE 9600
+#else
 #define BAUD_RATE 115200
+#endif
 
 #define AUTO 0xFF // 0-254. Id 255 is reserved for auto initialization of nodeId.
 #define NODE_SENSOR_ID 0xFF // Node child id is always created for when a node
@@ -105,7 +113,7 @@ class MySensor : public RF24
 	* @param channel Radio channel. Default is channel 76
 	* @param dataRate Radio transmission speed. Default RF24_1MBPS
 	*/
-
+ 	void setLevel(rf24_pa_dbm_e paLevel);
 	void begin(void (* msgCallback)(const MyMessage &)=NULL, uint8_t nodeId=AUTO, boolean repeaterMode=false, uint8_t parentNodeId=AUTO, rf24_pa_dbm_e paLevel=RF24_PA_LEVEL, uint8_t channel=RF24_CHANNEL, rf24_datarate_e dataRate=RF24_DATARATE);
 
 	/**
@@ -189,6 +197,7 @@ class MySensor : public RF24
 	 * @param pos The position to store value in (0-255)
 	 * @param Value to store in position
 	 */
+	#ifndef ENERGIA
 	void saveState(uint8_t pos, uint8_t value);
 
 	/**
@@ -198,6 +207,7 @@ class MySensor : public RF24
 	 * @return Value to store in position
 	 */
 	uint8_t loadState(uint8_t pos);
+	#endif
 
 	/**
 	* Returns the last received message
@@ -218,7 +228,7 @@ class MySensor : public RF24
 	 * @param ms Number of milliseconds to sleep.
 	 */
 	void wait(unsigned long ms);
-
+#ifndef ENERGIA
 	/**
 	 * Sleep (PowerDownMode) the Arduino and radio. Wake up on timer or pin change.
 	 * See: http://arduino.cc/en/Reference/attachInterrupt for details on modes and which pin
@@ -242,7 +252,7 @@ class MySensor : public RF24
 	 * @return Interrupt number wake up was triggered by pin change and negative if timer woke it up.
 	 */
 	int8_t sleep(uint8_t interrupt1, uint8_t mode1, uint8_t interrupt2, uint8_t mode2, unsigned long ms=0);
-
+#endif
 
 
 
@@ -254,9 +264,13 @@ class MySensor : public RF24
   protected:
 	NodeConfig nc; // Essential settings for node to work
 	ControllerConfig cc; // Configuration coming from controller
+	#ifndef ENERGIA
 	bool repeaterMode;
+	#endif
 	bool autoFindParent;
+	#ifndef ENERGIA
 	bool isGateway;
+	#endif
 	MyMessage msg;  // Buffer for incoming messages.
 	MyMessage ack;  // Buffer for ack messages.
 
@@ -270,7 +284,9 @@ class MySensor : public RF24
 	char convBuf[MAX_PAYLOAD*2+1];
 #endif
 	uint8_t failedTransmissions;
+	#ifndef ENERGIA
 	uint8_t *childNodeTable; // In memory buffer for routing information to other nodes. also stored in EEPROM
+	#endif
     void (*timeCallback)(unsigned long); // Callback for requested time messages
     void (*msgCallback)(const MyMessage &); // Callback for incoming messages from other nodes and gateway.
 
@@ -278,9 +294,11 @@ class MySensor : public RF24
 	void setupNode();
 	void findParentNode();
 	uint8_t crc8Message(MyMessage &message);
+	#ifndef ENERGIA
 	uint8_t getChildRoute(uint8_t childId);
 	void addChildRoute(uint8_t childId, uint8_t route);
 	void removeChildRoute(uint8_t childId);
+	#endif
 	void internalSleep(unsigned long ms);
 };
 #endif

@@ -11,13 +11,13 @@
 #define BASE_RADIO_ID 	   ((uint64_t)0xA8A8E1FC00LL) // This is also act as base value for sensor nodeId addresses. Change this (or channel) if you have more than one sensor network.
 
 // MySensors online examples defaults
-#define DEFAULT_CE_PIN 9
-#define DEFAULT_CS_PIN 10
+#define DEFAULT_CE_PIN P2_0
+#define DEFAULT_CS_PIN P2_1
 
 
 /***
  * Enable/Disable debug logging
  */
-#define DEBUG
+//#define DEBUG
 
 #endif

@@ -1,3 +1,4 @@
+#ifndef ENERGIA
 #ifndef LowPower_h
 #define LowPower_h
 
@@ -134,4 +135,5 @@ class LowPowerClass
 };
 
 extern LowPowerClass LowPower;
+#endif
 #endif

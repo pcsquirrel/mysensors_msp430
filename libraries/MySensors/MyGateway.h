@@ -9,6 +9,7 @@
  version 2 as published by the Free Software Foundation.
 */
 
+#ifndef ENERGIA
 #ifndef MyGateway_h
 #define MyGateway_h
 
@@ -69,4 +70,5 @@ class MyGateway : public MySensor
 void ledTimersInterrupt();
 void startInclusionInterrupt();
 
+#endif
 #endif

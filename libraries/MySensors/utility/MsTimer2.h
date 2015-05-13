@@ -1,3 +1,4 @@
+#ifndef ENERGIA
 #ifndef MsTimer2_h
 #define MsTimer2_h
 
@@ -20,4 +21,5 @@ namespace MsTimer2 {
 	void _overflow();
 }
 
+#endif
 #endif

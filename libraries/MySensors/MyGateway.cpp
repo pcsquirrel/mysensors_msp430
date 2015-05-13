@@ -8,7 +8,7 @@
  modify it under the terms of the GNU General Public License
  version 2 as published by the Free Software Foundation.
 */
-
+#ifndef ENERGIA
 #include "MyGateway.h"
 #include "utility/MsTimer2.h"
 #include "utility/PinChangeInt.h"
@@ -297,3 +297,4 @@ void MyGateway::errBlink(uint8_t cnt) {
   if(countErr == 255) { countErr = cnt; }
 }
 
+#endif

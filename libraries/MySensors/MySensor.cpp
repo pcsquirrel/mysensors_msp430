@@ -1,4 +1,4 @@
- /*
+/*
  The MySensors library adds a new layer on top of the RF24 library.
  It handles radio network routing, relaying and ids.
 
@@ -10,7 +10,9 @@
  */
 
 #include "MySensor.h"
+#ifndef ENERGIA
 #include "utility/LowPower.h"
+#endif
 #include "utility/RF24.h"
 #include "utility/RF24_config.h"
 
@@ -31,16 +33,27 @@ MySensor::MySensor(uint8_t _cepin, uint8_t _cspin) : RF24(_cepin, _cspin) {
 }
 
 void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId, boolean _repeaterMode, uint8_t _parentNodeId, rf24_pa_dbm_e paLevel, uint8_t channel, rf24_datarate_e dataRate) {
+	#ifdef DEBUG
 	Serial.begin(BAUD_RATE);
+	#endif
+	#ifndef ENERGIA
 	isGateway = false;
 	repeaterMode = _repeaterMode;
+	#endif
 	msgCallback = _msgCallback;
 
+	#ifndef ENERGIA	
 	if (repeaterMode) {
 		setupRepeaterMode();
 	}
+	#endif
 	setupRadio(paLevel, channel, dataRate);
 
+	#ifdef ENERGIA
+	//no epprom
+	//cc.
+	cc.isMetric = 0x01;
+	#else
 	// Read settings from eeprom
 	eeprom_read_block((void*)&nc, (void*)EEPROM_NODE_ID_ADDRESS, sizeof(NodeConfig));
 	// Read latest received controller configuration from EEPROM
@@ -49,13 +62,16 @@ void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId, b
 		// Eeprom empty, set default to metric
 		cc.isMetric = 0x01;
 	}
+	#endif
 
 	if (_parentNodeId != AUTO) {
+		#ifndef ENERGIA
 		if (_parentNodeId != nc.parentNodeId) {
 			nc.parentNodeId = _parentNodeId;
 			// Save static parent id in eeprom
 			eeprom_write_byte((uint8_t*)EEPROM_PARENT_NODE_ID_ADDRESS, _parentNodeId);
 		}
+		#endif
 		autoFindParent = false;
 	} else {
 		autoFindParent = true;
@@ -65,7 +81,9 @@ void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId, b
 	    // Set static id
 	    nc.nodeId = _nodeId;
 	    // Save static id in eeprom
+		#ifndef ENERGIA
 	    eeprom_write_byte((uint8_t*)EEPROM_NODE_ID_ADDRESS, _nodeId);
+		#endif
 	}
 
 	// If no parent was found in eeprom. Try to find one.
@@ -87,7 +105,10 @@ void MySensor::begin(void (*_msgCallback)(const MyMessage &), uint8_t _nodeId, b
 		wait(2000);
 	}
 }
-
+void  MySensor::setLevel(rf24_pa_dbm_e paLevel){
+	RF24::setPALevel(paLevel);
+}
+	
 void MySensor::setupRadio(rf24_pa_dbm_e paLevel, uint8_t channel, rf24_datarate_e dataRate) {
 	failedTransmissions = 0;
 
@@ -112,10 +133,12 @@ void MySensor::setupRadio(rf24_pa_dbm_e paLevel, uint8_t channel, rf24_datarate_
 	RF24::openReadingPipe(BROADCAST_PIPE, TO_ADDR(BROADCAST_ADDRESS));
 }
 
+#ifndef ENERGIA
 void MySensor::setupRepeaterMode(){
 	childNodeTable = new uint8_t[256];
 	eeprom_read_block((void*)childNodeTable, (void*)EEPROM_ROUTES_ADDRESS, 256);
 }
+#endif
 
 uint8_t MySensor::getNodeId() {
 	return nc.nodeId;
@@ -138,7 +161,11 @@ void MySensor::setupNode() {
 	RF24::openReadingPipe(CURRENT_NODE_PIPE, TO_ADDR(nc.nodeId));
 
 	// Send presentation for this radio node (attach
+	#ifdef ENERGIA
+	present(NODE_SENSOR_ID, S_ARDUINO_NODE);
+	#else
 	present(NODE_SENSOR_ID, repeaterMode? S_ARDUINO_REPEATER_NODE : S_ARDUINO_NODE);
+	#endif
 
 	// Send a configuration exchange request to controller
 	// Node sends parent node. Controller answers with latest node configuration
@@ -171,6 +198,7 @@ boolean MySensor::sendRoute(MyMessage &message) {
 		return false;
 	}
 
+	#ifndef ENERGIA
 	if (repeaterMode) {
 		uint8_t dest = message.destination;
 		uint8_t route = getChildRoute(dest);
@@ -185,8 +213,11 @@ boolean MySensor::sendRoute(MyMessage &message) {
 			return sendWrite(BROADCAST_ADDRESS, message, true);
 		}
 	}
+	#endif
 
+	#ifndef ENERGIA
 	if (!isGateway) {
+	#endif
 		// --- debug(PSTR("route parent\n"));
 		// Should be routed back to gateway.
 		bool ok = sendWrite(nc.parentNodeId, message);
@@ -203,7 +234,9 @@ boolean MySensor::sendRoute(MyMessage &message) {
 			failedTransmissions = 0;
 		}
 		return ok;
+	#ifndef ENERGIA
 	}
+	#endif
 	return false;
 }
 
@@ -286,10 +319,12 @@ boolean MySensor::process() {
 	if (destination == nc.nodeId) {
 		// This message is addressed to this node
 
+		#ifndef ENERGIA
 		if (repeaterMode && last != nc.parentNodeId) {
 			// Message is from one of the child nodes. Add it to routing table.
 			addChildRoute(sender, last);
 		}
+		#endif
 
 		// Check if sender requests an ack back.
 		if (mGetRequestAck(msg)) {
@@ -312,8 +347,11 @@ boolean MySensor::process() {
 						// Found a neighbor closer to GW than previously found
 						nc.distance = distance + 1;
 						nc.parentNodeId = msg.sender;
+						#ifndef ENERGIA
+						//ENERGIA_TODO
 						eeprom_write_byte((uint8_t*)EEPROM_PARENT_NODE_ID_ADDRESS, nc.parentNodeId);
 						eeprom_write_byte((uint8_t*)EEPROM_DISTANCE_ADDRESS, nc.distance);
+						#endif
 						debug(PSTR("new parent=%d, d=%d\n"), nc.parentNodeId, nc.distance);
 					}
 				}
@@ -323,7 +361,10 @@ boolean MySensor::process() {
 
 				if (type == I_REBOOT) {
 					// Requires MySensors or other bootloader with watchdogs enabled
+					#ifndef ENERGIA
+					//ENERGIA_TODO
 					wdt_enable(WDTO_15MS);
+					#endif
 					for (;;);
 				} else if (type == I_ID_RESPONSE) {
 					if (nc.nodeId == AUTO) {
@@ -335,7 +376,10 @@ boolean MySensor::process() {
 						}
 						setupNode();
 						// Write id to EEPROM
+						#ifndef ENERGIA
+						//ENERGIA_TODO
 						eeprom_write_byte((uint8_t*)EEPROM_NODE_ID_ADDRESS, nc.nodeId);
+						#endif
 						debug(PSTR("id=%d\n"), nc.nodeId);
 					}
 				} else if (type == I_CONFIG) {
@@ -344,9 +388,14 @@ boolean MySensor::process() {
 					isMetric = msg.getString()[0] == 'M' ;
 					if (cc.isMetric != isMetric) {
 						cc.isMetric = isMetric;
+						#ifndef ENERGIA
+						//ENERGIA_TODO
 						eeprom_write_byte((uint8_t*)EEPROM_CONTROLLER_CONFIG_ADDRESS, isMetric);
+						#endif
 					}
 				} else if (type == I_CHILDREN) {
+					#ifndef ENERGIA
+					//ENERGIA_TODO
 					if (repeaterMode && msg.getString()[0] == 'C') {
 						// Clears child relay data for this node
 						debug(PSTR("rd=clear\n"));
@@ -361,6 +410,7 @@ boolean MySensor::process() {
 						findParentNode();
 						sendRoute(build(msg, nc.nodeId, GATEWAY_ADDRESS, NODE_SENSOR_ID, C_INTERNAL, I_CHILDREN,false).set(""));
 					}
+					#endif
 				} else if (type == I_TIME) {
 					if (timeCallback != NULL) {
 						// Deliver time to callback
@@ -376,7 +426,9 @@ boolean MySensor::process() {
 		}
 		// Return true if message was addressed for this node...
 		return true;
-	} else if (repeaterMode && nc.nodeId != AUTO) {
+	}					
+	#ifndef ENERGIA
+	else if (repeaterMode && nc.nodeId != AUTO) {
 		// Relaying nodes should answer only after set an id
 
 		if (command == C_INTERNAL && type == I_FIND_PARENT) {
@@ -429,13 +481,14 @@ boolean MySensor::process() {
 			}
 		}
 	}
+	#endif
 	return false;
 }
 
 MyMessage& MySensor::getLastMessage() {
 	return msg;
 }
-
+#ifndef ENERGIA
 void MySensor::saveState(uint8_t pos, uint8_t value) {
 	if (loadState(pos) != value) {
 		eeprom_write_byte((uint8_t*)(EEPROM_LOCAL_CONFIG_ADDRESS+pos), value);
@@ -451,7 +504,9 @@ void MySensor::addChildRoute(uint8_t childId, uint8_t route) {
 		eeprom_write_byte((uint8_t*)EEPROM_ROUTES_ADDRESS+childId, route);
 	}
 }
+#endif
 
+#ifndef ENERGIA
 void MySensor::removeChildRoute(uint8_t childId) {
 	if (childNodeTable[childId] != 0xff) {
 		childNodeTable[childId] = 0xff;
@@ -462,6 +517,7 @@ void MySensor::removeChildRoute(uint8_t childId) {
 uint8_t MySensor::getChildRoute(uint8_t childId) {
 	return childNodeTable[childId];
 }
+#endif
 
 int8_t pinIntTrigger = 0;
 void wakeUp()	 //place to send the interrupts
@@ -474,6 +530,8 @@ void wakeUp2()	 //place to send the second interrupts
 }
 
 void MySensor::internalSleep(unsigned long ms) {
+	#ifndef ENERGIA
+	//ENERGIA_TODO
 	while (!pinIntTrigger && ms >= 8000) { LowPower.powerDown(SLEEP_8S, ADC_OFF, BOD_OFF); ms -= 8000; }
 	if (!pinIntTrigger && ms >= 4000)    { LowPower.powerDown(SLEEP_4S, ADC_OFF, BOD_OFF); ms -= 4000; }
 	if (!pinIntTrigger && ms >= 2000)    { LowPower.powerDown(SLEEP_2S, ADC_OFF, BOD_OFF); ms -= 2000; }
@@ -484,11 +542,27 @@ void MySensor::internalSleep(unsigned long ms) {
 	if (!pinIntTrigger && ms >= 64)      { LowPower.powerDown(SLEEP_60MS, ADC_OFF, BOD_OFF); ms -= 60; }
 	if (!pinIntTrigger && ms >= 32)      { LowPower.powerDown(SLEEP_30MS, ADC_OFF, BOD_OFF); ms -= 30; }
 	if (!pinIntTrigger && ms >= 16)      { LowPower.powerDown(SLEEP_15Ms, ADC_OFF, BOD_OFF); ms -= 15; }
+	#else
+	while (ms >= 8000) { sleepSeconds(8); ms -= 8000; }
+	if (ms >= 4000)    { sleepSeconds(4); ms -= 4000; }
+	if (ms >= 2000)    { sleepSeconds(2); ms -= 2000; }
+	if (ms >= 1000)    { sleepSeconds(1); ms -= 1000; }
+	//ENERGIA_TODO
+	// not working - controller is rebooting
+/*	if (ms >= 500)     { sleep(500); ms -= 500; }
+	if (ms >= 250)     { sleep(250); ms -= 250; }
+	if (ms >= 125)     { sleep(125); ms -= 125; }
+	if (ms >= 64)     { sleep(64); ms -= 64; }
+	if (ms >= 32)     { sleep(31); ms -= 32; }
+	if (ms >= 16)     { sleep(16); ms -= 15; }*/
+	#endif
 }
 
 void MySensor::sleep(unsigned long ms) {
 	// Let serial prints finish (debug, log etc)
+	#ifdef DEBUG
 	Serial.flush();
+	#endif
 	RF24::powerDown();
 	pinIntTrigger = 0;
 	internalSleep(ms);
@@ -496,19 +570,26 @@ void MySensor::sleep(unsigned long ms) {
 
 void MySensor::wait(unsigned long ms) {
 	// Let serial prints finish (debug, log etc)
+	#ifdef DEBUG
 	Serial.flush();
+	#endif
 	unsigned long enter = millis();
 	while (millis() - enter < ms) {
 		// reset watchdog
+		#ifndef ENERGIA
+		//ENERGIA_TODO
 		wdt_reset();
+		#endif
 		process();
 	}
 }
-
+#ifndef ENERGIA
 bool MySensor::sleep(uint8_t interrupt, uint8_t mode, unsigned long ms) {
 	// Let serial prints finish (debug, log etc)
 	bool pinTriggeredWakeup = true;
+	#ifdef DEBUG
 	Serial.flush();
+	#endif
 	RF24::powerDown();
 	attachInterrupt(interrupt, wakeUp, mode);
 	if (ms>0) {
@@ -518,8 +599,13 @@ bool MySensor::sleep(uint8_t interrupt, uint8_t mode, unsigned long ms) {
 			pinTriggeredWakeup = false;
 		}
 	} else {
+		#ifdef DEBUG
 		Serial.flush();
+		#endif
+		#ifndef ENERGIA
+		//ENERGIA_TODO
 		LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF);
+		#endif
 	}
 	detachInterrupt(interrupt);
 	return pinTriggeredWakeup;
@@ -527,7 +613,9 @@ bool MySensor::sleep(uint8_t interrupt, uint8_t mode, unsigned long ms) {
 
 int8_t MySensor::sleep(uint8_t interrupt1, uint8_t mode1, uint8_t interrupt2, uint8_t mode2, unsigned long ms) {
 	int8_t retVal = 1;
+	#ifdef DEBUG
 	Serial.flush(); // Let serial prints finish (debug, log etc)
+	#endif
 	RF24::powerDown();
 	attachInterrupt(interrupt1, wakeUp, mode1);
 	attachInterrupt(interrupt2, wakeUp2, mode2);
@@ -538,8 +626,13 @@ int8_t MySensor::sleep(uint8_t interrupt1, uint8_t mode1, uint8_t interrupt2, ui
 			retVal = -1;
 		}
 	} else {
+		#ifdef DEBUG
 		Serial.flush();
+		#endif
+		#ifndef ENERGIA
+		//ENERGIA_TODO
 		LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF);
+		#endif
 	}
 	detachInterrupt(interrupt1);
 	detachInterrupt(interrupt2);
@@ -551,6 +644,7 @@ int8_t MySensor::sleep(uint8_t interrupt1, uint8_t mode1, uint8_t interrupt2, ui
 	}
 	return retVal;
 }
+#endif
 
 #ifdef DEBUG
 void MySensor::debugPrint(const char *fmt, ... ) {
