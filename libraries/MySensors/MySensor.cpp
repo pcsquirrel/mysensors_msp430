@@ -364,6 +364,8 @@ boolean MySensor::process() {
 					#ifndef ENERGIA
 					//ENERGIA_TODO
 					wdt_enable(WDTO_15MS);
+					#else
+					WDTCTL = 0;
 					#endif
 					for (;;);
 				} else if (type == I_ID_RESPONSE) {
