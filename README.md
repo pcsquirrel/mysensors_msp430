@@ -35,6 +35,8 @@ Sensors:
 |MISO|14|7|
 |IRQ|?|8|
 
+![alt text](msp430_mysensors_Steckplatine.png "schematic")
+
 ## Known Limitations ##
 - needs 7.5KB ROM nad nearly 220B of RAM
 - MSP430G2452 code compiles, but doesn´t run proberly - stack corruption possibly
