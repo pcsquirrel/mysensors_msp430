@@ -545,18 +545,7 @@ void MySensor::internalSleep(unsigned long ms) {
 	if (!pinIntTrigger && ms >= 32)      { LowPower.powerDown(SLEEP_30MS, ADC_OFF, BOD_OFF); ms -= 30; }
 	if (!pinIntTrigger && ms >= 16)      { LowPower.powerDown(SLEEP_15Ms, ADC_OFF, BOD_OFF); ms -= 15; }
 	#else
-	while (ms >= 8000) { sleepSeconds(8); ms -= 8000; }
-	if (ms >= 4000)    { sleepSeconds(4); ms -= 4000; }
-	if (ms >= 2000)    { sleepSeconds(2); ms -= 2000; }
-	if (ms >= 1000)    { sleepSeconds(1); ms -= 1000; }
-	//ENERGIA_TODO
-	// not working - controller is rebooting
-/*	if (ms >= 500)     { sleep(500); ms -= 500; }
-	if (ms >= 250)     { sleep(250); ms -= 250; }
-	if (ms >= 125)     { sleep(125); ms -= 125; }
-	if (ms >= 64)     { sleep(64); ms -= 64; }
-	if (ms >= 32)     { sleep(31); ms -= 32; }
-	if (ms >= 16)     { sleep(16); ms -= 15; }*/
+	::sleep(ms);
 	#endif
 }
 
@@ -585,7 +574,7 @@ void MySensor::wait(unsigned long ms) {
 		process();
 	}
 }
-#ifndef ENERGIA
+
 bool MySensor::sleep(uint8_t interrupt, uint8_t mode, unsigned long ms) {
 	// Let serial prints finish (debug, log etc)
 	bool pinTriggeredWakeup = true;
@@ -646,7 +635,6 @@ int8_t MySensor::sleep(uint8_t interrupt1, uint8_t mode1, uint8_t interrupt2, ui
 	}
 	return retVal;
 }
-#endif
 
 #ifdef DEBUG
 void MySensor::debugPrint(const char *fmt, ... ) {

@@ -35,7 +35,6 @@ Sensors:
 |MISO|14|7|
 |IRQ|?|8|
 
-Inline-style: 
 ![alt text](msp430_mysensors_Steckplatine.png "schematic")
 
 ## Known Limitations ##
