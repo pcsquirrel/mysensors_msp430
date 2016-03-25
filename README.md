@@ -38,7 +38,7 @@ Sensors:
 ![alt text](msp430_mysensors_Steckplatine.png "schematic")
 
 ## Known Limitations ##
-- needs 7.5KB ROM needs nearly 220B of RAM
+- needs 7.5KB ROM and nearly 220B of RAM
 - MSP430G2452 code compiles, but doesn´t run properly - stack corruption possibly
 - no Repeater Mode
 - no Gateway Mode
